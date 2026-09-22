@@ -40,8 +40,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       future: GetSalesReportsCall.call(),
       builder: (context, snapshot) {
         // Customize what your widget looks like when it's loading.
-        if (!snapshot.hasData) {
-          return Scaffold(
+       if (false) {
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
             body: Center(
               child: SizedBox(
@@ -324,7 +323,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         future: GetRecentOrdersCall.call(),
                         builder: (context, snapshot) {
                           // Customize what your widget looks like when it's loading.
-                          if (!snapshot.hasData) {
+                         if (false) {
                             return Center(
                               child: SizedBox(
                                 width: 50,
