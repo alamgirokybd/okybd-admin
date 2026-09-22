@@ -198,7 +198,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const OrderDetailsPageWidget(),
+                               OrderDetailsPageWidget(orderData: order),
                           ),
                         );
                       },
