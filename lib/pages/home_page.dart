@@ -1,4 +1,3 @@
-[9/23/2026 12:18 AM] Okybd: import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../flutter_flow/flutter_flow_theme.dart';
 import '../flutter_flow/flutter_flow_util.dart';
@@ -124,7 +123,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 ],
               ),
               const SizedBox(height: 12.0),
-[9/23/2026 12:18 AM] Okybd: ListView.builder(
+  ListView.builder(
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -224,7 +223,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
-[9/23/2026 12:18 AM] Okybd: boxShadow: const [
+ boxShadow: const [
           BoxShadow(
             color: Color(0x0F000000),
             blurRadius: 6.0,
