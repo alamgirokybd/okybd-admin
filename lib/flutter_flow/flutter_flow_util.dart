@@ -88,5 +88,42 @@ dynamic getJsonField(
     return current;
   } catch (_) {
     return null;
+    // FlutterFlowIconButton
+class FlutterFlowIconButton extends StatelessWidget {
+  final Widget? icon;
+  final VoidCallback? onPressed;
+  final Color? borderColor;
+  final double? borderWidth;
+  final double? buttonSize;
+  final Color? fillColor;
+  final bool showLoadingIndicator;
+
+  const FlutterFlowIconButton({
+    Key? key,
+    this.icon,
+    this.onPressed,
+    this.borderColor,
+    this.borderWidth,
+    this.buttonSize,
+    this.fillColor,
+    this.showLoadingIndicator = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: icon ?? const SizedBox(),
+      onPressed: onPressed,
+      iconSize: (buttonSize != null) ? buttonSize! * 0.6 : 24.0,
+    );
+  }
+}
+
+// API Calls mock helper
+class GetRecentOrdersCall {
+  static Future<dynamic> call() async {
+    return null;
+  }
+}
   }
 }
