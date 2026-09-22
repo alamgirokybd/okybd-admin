@@ -117,12 +117,28 @@ class FlutterFlowIconButton extends StatelessWidget {
       icon: icon ?? const SizedBox(),
       onPressed: onPressed,
       iconSize: (buttonSize != null) ? buttonSize! * 0.6 : 24.0,
+  
     );
   }
 }
 
+
 class GetRecentOrdersCall {
   static Future<dynamic> call() async {
     return null;
+  }
+}
+extension ListDivideExtension<T extends Widget> on Iterable<T> {
+  List<Widget> divide(Widget separator) {
+    final list = toList();
+    if (list.isEmpty) return [];
+    final output = <Widget>[];
+    for (var i = 0; i < list.length; i++) {
+      output.add(list[i]);
+      if (i != list.length - 1) {
+        output.add(separator);
+      }
+    }
+    return output;
   }
 }
