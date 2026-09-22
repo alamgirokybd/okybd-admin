@@ -3,14 +3,9 @@ import 'order_details_page.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'dart:ui';
-import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-
-import 'home_page_model.dart';
-export 'home_page_model.dart';
-
 class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
 
