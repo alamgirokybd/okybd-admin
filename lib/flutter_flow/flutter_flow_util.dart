@@ -88,7 +88,9 @@ dynamic getJsonField(
     return current;
   } catch (_) {
     return null;
-    // FlutterFlowIconButton
+  }
+}
+
 class FlutterFlowIconButton extends StatelessWidget {
   final Widget? icon;
   final VoidCallback? onPressed;
@@ -99,7 +101,7 @@ class FlutterFlowIconButton extends StatelessWidget {
   final bool showLoadingIndicator;
 
   const FlutterFlowIconButton({
-    Key? key,
+    super.key,
     this.icon,
     this.onPressed,
     this.borderColor,
@@ -107,7 +109,7 @@ class FlutterFlowIconButton extends StatelessWidget {
     this.buttonSize,
     this.fillColor,
     this.showLoadingIndicator = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -119,11 +121,8 @@ class FlutterFlowIconButton extends StatelessWidget {
   }
 }
 
-// API Calls mock helper
 class GetRecentOrdersCall {
   static Future<dynamic> call() async {
     return null;
-  }
-}
   }
 }
