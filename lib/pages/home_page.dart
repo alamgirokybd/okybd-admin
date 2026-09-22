@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import '/pages/lib/pages/order_details_page.dart';
+import 'order_details_page.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -144,7 +144,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .override(
-                                          font: GoogleFonts.inter(
+                                          style: GoogleFonts.inter(
                                             fontWeight: FontWeight.bold,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
@@ -171,7 +171,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.inter(
+                                            style: GoogleFonts.inter(
                                               fontWeight: FontWeight.bold,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -227,7 +227,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .override(
-                                          font: GoogleFonts.inter(
+                                          style: GoogleFonts.inter(
                                             fontWeight: FontWeight.bold,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
@@ -254,7 +254,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.inter(
+                                            style: GoogleFonts.inter(
                                               fontWeight: FontWeight.bold,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -293,7 +293,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           'Recent Orders',
                           style:
                               FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
+                                    style: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .bodyMedium
@@ -407,7 +407,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                           context)
                                                       .bodyMedium
                                                       .override(
-                                                        font: GoogleFonts.inter(
+                                                        style: GoogleFonts.inter(
                                                           fontWeight:
                                                               FontWeight.bold,
                                                           fontStyle:
@@ -436,7 +436,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                           context)
                                                       .bodyMedium
                                                       .override(
-                                                        font: GoogleFonts.inter(
+                                                        style: GoogleFonts.inter(
                                                           fontWeight:
                                                               FontWeight.bold,
                                                           fontStyle:
@@ -469,7 +469,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                       context)
                                                   .bodyMedium
                                                   .override(
-                                                    font: GoogleFonts.inter(
+                                                    style: GoogleFonts.inter(
                                                       fontWeight:
                                                           FontWeight.bold,
                                                       fontStyle:
@@ -510,7 +510,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                           context)
                                                       .bodyMedium
                                                       .override(
-                                                        font: GoogleFonts.inter(
+                                                        style: GoogleFonts.inter(
                                                           fontWeight:
                                                               FontWeight.bold,
                                                           fontStyle:
