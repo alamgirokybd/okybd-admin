@@ -98,6 +98,7 @@ class FlutterFlowIconButton extends StatelessWidget {
   final double? borderWidth;
   final double? buttonSize;
   final Color? fillColor;
+  final double? borderRadius;
   final bool showLoadingIndicator;
 
   const FlutterFlowIconButton({
@@ -108,6 +109,7 @@ class FlutterFlowIconButton extends StatelessWidget {
     this.borderWidth,
     this.buttonSize,
     this.fillColor,
+    this.borderRadius,
     this.showLoadingIndicator = false,
   });
 
@@ -117,17 +119,43 @@ class FlutterFlowIconButton extends StatelessWidget {
       icon: icon ?? const SizedBox(),
       onPressed: onPressed,
       iconSize: (buttonSize != null) ? buttonSize! * 0.6 : 24.0,
-  
     );
   }
 }
 
+class ApiCallResponse {
+  final dynamic jsonBody;
+  final int statusCode;
+  final bool succeeded;
+  ApiCallResponse(this.jsonBody, this.statusCode, this.succeeded);
+}
 
 class GetRecentOrdersCall {
-  static Future<dynamic> call() async {
-    return null;
+  static Future<ApiCallResponse> call() async {
+    return ApiCallResponse({}, 200, true);
   }
 }
+
+class GetSalesReportsCall {
+  static Future<ApiCallResponse> call() async {
+    return ApiCallResponse({}, 200, true);
+  }
+}
+
+T createModel<T>(BuildContext context, T Function() defaultModel) {
+  return defaultModel();
+}
+
+class HomePageModel {
+  void dispose() {}
+  void initState(BuildContext context) {}
+}
+
+class OrderDetailsPageModel {
+  void dispose() {}
+  void initState(BuildContext context) {}
+}
+
 extension ListDivideExtension<T extends Widget> on Iterable<T> {
   List<Widget> divide(Widget separator) {
     final list = toList();
