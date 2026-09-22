@@ -107,7 +107,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: style: style: GoogleFonts.inter(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -132,7 +132,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: style: style: GoogleFonts.inter(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -157,7 +157,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: style: style: GoogleFonts.inter(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -182,7 +182,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: style: style: GoogleFonts.inter(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -207,7 +207,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: style: style: GoogleFonts.inter(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -232,7 +232,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: style: style: GoogleFonts.inter(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontWeight,
@@ -290,7 +290,7 @@ class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
                               style: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .override(
-                                    font: style: style: GoogleFonts.inter(
+                                    style: GoogleFonts.inter(
                                       fontWeight: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .fontWeight,
