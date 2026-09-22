@@ -132,13 +132,37 @@ class ApiCallResponse {
 
 class GetRecentOrdersCall {
   static Future<ApiCallResponse> call() async {
-    return ApiCallResponse({}, 200, true);
+    return ApiCallResponse([
+      {
+        'id': 101,
+        'status': 'processing',
+        'total': '1250',
+        'currency_symbol': '৳',
+        'billing': {
+          'first_name': 'Akash',
+          'last_name': 'Hossain',
+          'phone': '01700000000',
+          'city': 'Dhaka'
+        },
+        'line_items': [
+          {'name': 'Smart Padlock', 'quantity': 1, 'total': '1250'}
+        ]
+      }
+    ], 200, true);
   }
 }
 
 class GetSalesReportsCall {
   static Future<ApiCallResponse> call() async {
-    return ApiCallResponse({}, 200, true);
+    return ApiCallResponse([
+      {
+        'total_sales': '12500',
+        'net_sales': '11200',
+        'average_sales': '1250',
+        'total_orders': 10,
+        'total_items': 15
+      }
+    ], 200, true);
   }
 }
 
