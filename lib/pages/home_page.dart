@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../flutter_flow/flutter_flow_theme.dart';
-import 'order_details_page.dart';
 
 class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
@@ -20,15 +20,97 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   String _totalSales = '0.00';
   String _totalOrders = '0';
 
-  final String _ordersUrl =
-      'https://okybd.com/wp-json/wc/v3/orders?per_page=50&consumer_key=ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840&consumer_secret=cs_6d16165fbc1a7815876093e225317dfe714f39e6';
-  final String _reportsUrl =
-      'https://okybd.com/wp-json/wc/v3/reports/sales?consumer_key=ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840&consumer_secret=cs_6d16165fbc1a7815876093e225317dfe714f39e6';
+  final String _consumerKey = 'ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840';
+  final String _consumerSecret = 'cs_6d16165fbc1a7815876093e225317dfe714f39e6';
+
+  late final String _ordersUrl =
+      'https://okybd.com/wp-json/wc/v3/orders?per_page=50&consumer_key=$_consumerKey&consumer_secret=$_consumerSecret';
+  late final String _reportsUrl =
+      'https://okybd.com/wp-json/wc/v3/reports/sales?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret';
 
   @override
   void initState() {
     super.initState();
     _fetchDashboardData();
+  }
+
+  // কাস্টমারকে সরাসরি কল করার ফাংশন
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri.parse('tel:$cleanNumber');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ফোন ডায়ালার ওপেন করা যায়নি!')),
+        );
+      }
+    }
+  }
+
+  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
+  Future<void> _openWhatsApp(String phoneNumber, String orderId) async {
+    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanNumber.startsWith('0')) {
+      cleanNumber = '88$cleanNumber';
+    } else if (!cleanNumber.startsWith('880')) {
+      cleanNumber = '880$cleanNumber';
+    }
+
+    final message = Uri.encodeComponent(
+      'প্রিয় কাস্টমার, Okybd থেকে আপনার #$orderId নম্বর অর্ডারের বিষয়ে যোগাযোগ করা হয়েছে। আপনার অর্ডারটি কনফার্ম করতে অনুগ্রহ করে রিপ্লাই দিন। ধন্যবাদ!',
+    );
+
+    final uri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('হোয়াটসঅ্যাপ ওপেন করা যায়নি!')),
+        );
+      }
+    }
+  }
+
+  // অর্ডার স্ট্যাটাস সরাসরি আপডেট করার ফাংশন
+  Future<void> _updateOrderStatus(int orderId, String newStatus) async {
+    final url = Uri.parse(
+      'https://okybd.com/wp-json/wc/v3/orders/$orderId?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret',
+    );
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile)',
+        },
+        body: json.encode({'status': newStatus}),
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('অর্ডার #$orderId স্ট্যাটাস সফলভাবে "$newStatus" হয়েছে!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        _fetchDashboardData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('স্ট্যাটাস আপডেট ব্যর্থ: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _fetchDashboardData() async {
@@ -239,18 +321,20 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   )
                 else
                   ListView.builder(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.only(bottom: 20),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _orders.length,
                     itemBuilder: (context, index) {
                       final order = _orders[index];
                       final billing = order['billing'] ?? {};
+                      final phone = billing['phone']?.toString() ?? '';
                       final customerName = (billing['first_name'] != null &&
                               billing['first_name'].toString().isNotEmpty)
                           ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
                               .trim()
                           : 'Guest Customer';
+                      final currentStatus = order['status'] ?? 'pending';
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
@@ -259,30 +343,106 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                           elevation: 1,
-                          child: ListTile(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      OrderDetailsPageWidget(orderData: order),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            customerName,
+                                            style: GoogleFonts.inter(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '#${order['id']} • $currentStatus',
+                                            style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      'TK ${order['total'] ?? '0'}',
+                                      style: GoogleFonts.inter(
+                                        color: const Color(0xFF21D421),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                            title: Text(
-                              customerName,
-                              style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold, fontSize: 15),
-                            ),
-                            subtitle:
-                                Text('#${order['id']} • ${order['status'] ?? ''}'),
-                            trailing: Text(
-                              'TK ${order['total'] ?? '0'}',
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFF21D421),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
+                                const Divider(height: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // স্ট্যাটাস পরিবর্তন ড্রপডাউন
+                                    DropdownButton<String>(
+                                      value: ['pending', 'processing', 'completed', 'cancelled']
+                                              .contains(currentStatus)
+                                          ? currentStatus
+                                          : 'processing',
+                                      isDense: true,
+                                      underline: const SizedBox(),
+                                      items: const [
+                                        DropdownMenuItem(
+                                            value: 'pending',
+                                            child: Text('Pending', style: TextStyle(fontSize: 13))),
+                                        DropdownMenuItem(
+                                            value: 'processing',
+                                            child: Text('Processing', style: TextStyle(fontSize: 13, color: Colors.blue))),
+                                        DropdownMenuItem(
+                                            value: 'completed',
+                                            child: Text('Completed', style: TextStyle(fontSize: 13, color: Colors.green))),
+                                        DropdownMenuItem(
+                                            value: 'cancelled',
+                                            child: Text('Cancelled', style: TextStyle(fontSize: 13, color: Colors.red))),
+                                      ],
+                                      onChanged: (newStatus) {
+                                        if (newStatus != null && newStatus != currentStatus) {
+                                          _updateOrderStatus(order['id'], newStatus);
+                                        }
+                                      },
+                                    ),
+                                    // কল ও হোয়াটসঅ্যাপ অ্যাকশন বাটন
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.call,
+                                              color: Colors.green, size: 22),
+                                          tooltip: 'Call Customer',
+                                          onPressed: phone.isNotEmpty
+                                              ? () => _makePhoneCall(phone)
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        IconButton(
+                                          icon: const Icon(Icons.chat,
+                                              color: Color(0xFF25D366),
+                                              size: 22),
+                                          tooltip: 'WhatsApp',
+                                          onPressed: phone.isNotEmpty
+                                              ? () => _openWhatsApp(
+                                                  phone, order['id'].toString())
+                                              : null,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
