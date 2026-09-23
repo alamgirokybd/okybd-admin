@@ -1,460 +1,248 @@
-import '/backend/api_requests/api_calls.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
-import '/index.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-
+import 'package:http/http.dart' as http;
+import '../flutter_flow/flutter_flow_theme.dart';
 import 'order_details_page.dart';
-import 'home_page_model.dart';
-export 'home_page_model.dart';
 
 class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
-
-  static String routeName = 'HomePage';
-  static String routePath = '/homePage';
 
   @override
   State<HomePageWidget> createState() => _HomePageWidgetState();
 }
 
 class _HomePageWidgetState extends State<HomePageWidget> {
-  late HomePageModel _model;
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isLoading = true;
+  List<dynamic> _orders = [];
+  String _totalSales = '0.00';
+  String _totalOrders = '0';
+
+  // WooCommerce Credentials
+  final String _baseUrl = 'https://okybd.com/wp-json/wc/v3';
+  final String _consumerKey = 'ck_daec87e411b0e02c6fe9fc975f70bdf0a693ec97';
+  final String _consumerSecret = 'cs_9fb28e7e1a6c4349dbfa22b10a2f1a66ffad164f';
 
   @override
   void initState() {
     super.initState();
-    _model = createModel(context, () => HomePageModel());
+    _fetchDashboardData();
   }
 
-  @override
-  void dispose() {
-    _model.dispose();
-    super.dispose();
+  Future<void> _fetchDashboardData() async {
+    setState(() => _isLoading = true);
+    final String auth = 'Basic ' + base64Encode(utf8.encode('$_consumerKey:$_consumerSecret'));
+
+    try {
+      // 1. Fetch Orders
+      final ordersResponse = await http.get(
+        Uri.parse('$_baseUrl/orders?per_page=20'),
+        headers: {'Authorization': auth},
+      );
+
+      if (ordersResponse.statusCode == 200) {
+        final List<dynamic> ordersData = json.decode(ordersResponse.body);
+        _orders = ordersData;
+      }
+
+      // 2. Fetch Reports
+      final reportsResponse = await http.get(
+        Uri.parse('$_baseUrl/reports/sales'),
+        headers: {'Authorization': auth},
+      );
+
+      if (reportsResponse.statusCode == 200) {
+        final List<dynamic> reportsData = json.decode(reportsResponse.body);
+        if (reportsData.isNotEmpty) {
+          _totalSales = reportsData[0]['total_sales']?.toString() ?? '0.00';
+          _totalOrders = reportsData[0]['total_orders']?.toString() ?? '0';
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching data: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ApiCallResponse>(
-      future: GetSalesReportsCall.call(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Scaffold(
-            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            body: Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    FlutterFlowTheme.of(context).primary,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-        final homePageGetSalesReportsResponse = snapshot.data!;
+    final theme = FlutterFlowTheme.of(context);
 
-        return GestureDetector(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-            FocusManager.instance.primaryFocus?.unfocus();
-          },
-          child: Scaffold(
-            key: scaffoldKey,
-            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            appBar: AppBar(
-              backgroundColor: const Color(0xB2EE6083),
-              automaticallyImplyLeading: false,
-              title: Text(
-                'Okybd',
-                style: FlutterFlowTheme.of(context).headlineMedium.override(
-                      font: GoogleFonts.interTight(
-                        fontWeight: FlutterFlowTheme.of(context)
-                            .headlineMedium
-                            .fontWeight,
-                        fontStyle: FlutterFlowTheme.of(context)
-                            .headlineMedium
-                            .fontStyle,
+    return Scaffold(
+      key: scaffoldKey,
+      backgroundColor: theme.primaryBackground,
+      appBar: AppBar(
+        backgroundColor: const Color(0xB2EE6083),
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Okybd',
+          style: GoogleFonts.interTight(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _fetchDashboardData,
+          ),
+        ],
+        elevation: 2,
+      ),
+      body: SafeArea(
+        top: true,
+        child: RefreshIndicator(
+          onRefresh: _fetchDashboardData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.monetization_on, color: Color(0xFF119AFF), size: 32),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'TK $_totalSales',
+                                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total Revenue',
+                                  style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[700]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      color: Colors.white,
-                      fontSize: 22,
-                      letterSpacing: 0.0,
                     ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.white),
-                  onPressed: () {
-                    setState(() {});
-                  },
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.shopping_bag, color: Color(0xFF1199FF), size: 32),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _totalOrders,
+                                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total Orders',
+                                  style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[700]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-              centerTitle: false,
-              elevation: 2,
-            ),
-            body: SafeArea(
-              top: true,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        child: Padding(
-                          padding: const EdgeInsetsDirectional.fromSTEB(6, 0, 6, 0),
-                          child: Card(
-                            clipBehavior: Clip.antiAliasWithSaveLayer,
-                            color: FlutterFlowTheme.of(context).accent3,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(
-                                  FlutterFlowTheme.of(context).designToken.spacing.md),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  const Icon(
-                                    Icons.monetization_on,
-                                    color: Color(0xFF119AFF),
-                                    size: 32,
-                                  ),
-                                  Text(
-                                    'TK ${getJsonField(
-                                      homePageGetSalesReportsResponse.jsonBody,
-                                      r'''$[0].total_sales''',
-                                    )?.toString() ?? '0.00'}',
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .override(
-                                          font: GoogleFonts.inter(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          fontSize: 20,
-                                          letterSpacing: 0.0,
-                                        ),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(
-                                        FlutterFlowTheme.of(context).designToken.spacing.md),
-                                    child: Text(
-                                      'Total Revenue',
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            color: Colors.black,
-                                            fontSize: 14,
-                                            letterSpacing: 0.0,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Flexible(
-                        child: Padding(
-                          padding: const EdgeInsetsDirectional.fromSTEB(6, 0, 6, 0),
-                          child: Card(
-                            clipBehavior: Clip.antiAliasWithSaveLayer,
-                            color: FlutterFlowTheme.of(context).accent3,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(
-                                  FlutterFlowTheme.of(context).designToken.spacing.md),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  const Icon(
-                                    Icons.shopping_bag,
-                                    color: Color(0xFF1199FF),
-                                    size: 32,
-                                  ),
-                                  Text(
-                                    getJsonField(
-                                      homePageGetSalesReportsResponse.jsonBody,
-                                      r'''$[0].total_orders''',
-                                    )?.toString() ?? '0',
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .override(
-                                          font: GoogleFonts.inter(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          fontSize: 20,
-                                          letterSpacing: 0.0,
-                                        ),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(
-                                        FlutterFlowTheme.of(context).designToken.spacing.md),
-                                    child: Text(
-                                      'Total Orders',
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            color: Colors.black,
-                                            fontSize: 14,
-                                            letterSpacing: 0.0,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Padding(
-                        padding: EdgeInsets.all(
-                            FlutterFlowTheme.of(context).designToken.spacing.md),
-                        child: Text(
-                          'Recent Orders',
-                          style: FlutterFlowTheme.of(context).bodyMedium.override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                fontSize: 18,
-                                letterSpacing: 0.0,
-                              ),
-                        ),
+                      Text(
+                        'Recent Orders',
+                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      FlutterFlowIconButton(
-                        borderRadius: 8,
-                        buttonSize: 40,
-                        fillColor: FlutterFlowTheme.of(context).primary,
-                        icon: Icon(
-                          Icons.refresh_outlined,
-                          color: FlutterFlowTheme.of(context).info,
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          setState(() {});
-                        },
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 22),
+                        onPressed: _fetchDashboardData,
                       ),
                     ],
                   ),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(),
-                      child: FutureBuilder<ApiCallResponse>(
-                        future: GetRecentOrdersCall.call(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return Center(
-                              child: SizedBox(
-                                width: 40,
-                                height: 40,
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    FlutterFlowTheme.of(context).primary,
-                                  ),
+                ),
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_orders.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: Text('No orders found')),
+                  )
+                else
+                  ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _orders.length,
+                    itemBuilder: (context, index) {
+                      final order = _orders[index];
+                      final billing = order['billing'] ?? {};
+                      final customerName = (billing['first_name'] != null && billing['first_name'].toString().isNotEmpty)
+                          ? '${billing['first_name']} ${billing['last_name'] ?? ''}'.trim()
+                          : 'Guest Customer';
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        child: Card(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 1,
+                          child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrderDetailsPageWidget(orderData: order),
                                 ),
-                              ),
-                            );
-                          }
-                          final listViewGetRecentOrdersResponse = snapshot.data!;
-
-                          return Builder(
-                            builder: (context) {
-                              final rawOrders = listViewGetRecentOrdersResponse.jsonBody;
-                              final List orderItem = (rawOrders is List) ? rawOrders : [];
-
-                              if (orderItem.isEmpty) {
-                                return const Center(
-                                  child: Text('No orders found'),
-                                );
-                              }
-
-                              return ListView.builder(
-                                padding: EdgeInsets.zero,
-                                primary: false,
-                                shrinkWrap: true,
-                                scrollDirection: Axis.vertical,
-                                itemCount: orderItem.length,
-                                itemBuilder: (context, orderItemIndex) {
-                                  final orderItemItem = orderItem[orderItemIndex];
-                                  return Padding(
-                                    padding: const EdgeInsetsDirectional.fromSTEB(
-                                        12, 4, 12, 8),
-                                    child: InkWell(
-                                      splashColor: Colors.transparent,
-                                      focusColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                OrderDetailsPageWidget(
-                                              orderData: orderItemItem,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        width: double.infinity,
-                                        height: 70,
-                                        decoration: BoxDecoration(
-                                          color: FlutterFlowTheme.of(context)
-                                              .secondaryBackground,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
-                                          children: [
-                                            Column(
-                                              mainAxisSize: MainAxisSize.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  getJsonField(
-                                                    orderItemItem,
-                                                    r'''$.billing.first_name''',
-                                                  )?.toString() ?? 'Guest',
-                                                  style: FlutterFlowTheme.of(
-                                                          context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                        fontSize: 15,
-                                                        letterSpacing: 0.0,
-                                                      ),
-                                                ),
-                                                Text(
-                                                  '#${getJsonField(
-                                                    orderItemItem,
-                                                    r'''$.id''',
-                                                  )?.toString() ?? ''}',
-                                                  style: FlutterFlowTheme.of(
-                                                          context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                        color: const Color(
-                                                            0xFF784028),
-                                                        fontSize: 12,
-                                                        letterSpacing: 0.0,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                            Text(
-                                              'TK ${getJsonField(
-                                                orderItemItem,
-                                                r'''$.total''',
-                                              )?.toString() ?? '0'}',
-                                              style: FlutterFlowTheme.of(
-                                                      context)
-                                                  .bodyMedium
-                                                  .override(
-                                                    font: GoogleFonts.inter(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                    color: const Color(
-                                                        0xFF21D421),
-                                                    fontSize: 15,
-                                                    letterSpacing: 0.0,
-                                                  ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsetsDirectional.fromSTEB(
-                                                      8, 0, 8, 0),
-                                              child: Container(
-                                                height: 26,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: FlutterFlowTheme.of(
-                                                          context)
-                                                      .primaryBackground,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  getJsonField(
-                                                    orderItemItem,
-                                                    r'''$.status''',
-                                                  )?.toString() ?? '',
-                                                  style: FlutterFlowTheme.of(
-                                                          context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                        fontSize: 12,
-                                                        letterSpacing: 0.0,
-                                                      ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
                               );
                             },
-                          );
-                        },
-                      ),
-                    ),
+                            title: Text(
+                              customerName,
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            subtitle: Text('#${order['id']} • ${order['status'] ?? ''}'),
+                            trailing: Text(
+                              'TK ${order['total'] ?? '0'}',
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFF21D421),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
