@@ -2,350 +2,296 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
+import '../flutter_flow/flutter_flow_theme.dart';
+import 'order_details_page.dart';
 
-class OrderDetailsPageWidget extends StatefulWidget {
-  final dynamic orderData;
-
-  const OrderDetailsPageWidget({super.key, required this.orderData});
+class HomePageWidget extends StatefulWidget {
+  const HomePageWidget({super.key});
 
   @override
-  State<OrderDetailsPageWidget> createState() => _OrderDetailsPageWidgetState();
+  State<HomePageWidget> createState() => _HomePageWidgetState();
 }
 
-class _OrderDetailsPageWidgetState extends State<OrderDetailsPageWidget> {
-  late String _currentStatus;
-  bool _isUpdating = false;
+class _HomePageWidgetState extends State<HomePageWidget> {
+  final scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<dynamic> _orders = [];
+  String _totalSales = '0.00';
+  String _totalOrders = '0';
 
-  final String _consumerKey = 'ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840';
-  final String _consumerSecret = 'cs_6d16165fbc1a7815876093e225317dfe714f39e6';
+  final String _ordersUrl =
+      'https://okybd.com/wp-json/wc/v3/orders?per_page=50&consumer_key=ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840&consumer_secret=cs_6d16165fbc1a7815876093e225317dfe714f39e6';
+  final String _reportsUrl =
+      'https://okybd.com/wp-json/wc/v3/reports/sales?consumer_key=ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840&consumer_secret=cs_6d16165fbc1a7815876093e225317dfe714f39e6';
 
   @override
   void initState() {
     super.initState();
-    _currentStatus = widget.orderData['status'] ?? 'pending';
+    _fetchDashboardData();
   }
 
-  // কাস্টমারকে সরাসরি কল দেওয়ার ফাংশন
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
-    final uri = Uri.parse('tel:$cleanNumber');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ফোন ডায়ালার ওপেন করা যায়নি!')),
-        );
-      }
-    }
-  }
+  Future<void> _fetchDashboardData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  // কাস্টমারকে সরাসরি হোয়াটসঅ্যাপ মেসেজ পাঠানোর ফাংশন
-  Future<void> _openWhatsApp(String phoneNumber, String orderId) async {
-    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cleanNumber.startsWith('0')) {
-      cleanNumber = '88$cleanNumber';
-    } else if (!cleanNumber.startsWith('880')) {
-      cleanNumber = '880$cleanNumber';
-    }
-
-    final message = Uri.encodeComponent(
-      'প্রিয় কাস্টমার, Okybd থেকে আপনার #$orderId নম্বর অর্ডারের বিষয়ে যোগাযোগ করা হয়েছে। আপনার অর্ডারটি কনফার্ম করতে অনুগ্রহ করে রিপ্লাই দিন। ধন্যবাদ!',
-    );
-
-    final uri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('হোয়াটসঅ্যাপ ওপেন করা যায়নি!')),
-        );
-      }
-    }
-  }
-
-  // ওয়েবসাইট ও অ্যাপে স্ট্যাটাস আপডেট করার ফাংশন
-  Future<void> _updateOrderStatus(String newStatus) async {
-    setState(() => _isUpdating = true);
-    final orderId = widget.orderData['id'];
-
-    final url = Uri.parse(
-      'https://okybd.com/wp-json/wc/v3/orders/$orderId?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret',
-    );
+    final headers = {
+      'User-Agent':
+          'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
+      'Accept': 'application/json',
+    };
 
     try {
-      final response = await http.put(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile)',
-        },
-        body: json.encode({'status': newStatus}),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _currentStatus = newStatus;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('অর্ডার স্ট্যাটাস সফলভাবে "$newStatus" হয়েছে!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+      final ordersResponse =
+          await http.get(Uri.parse(_ordersUrl), headers: headers);
+      if (ordersResponse.statusCode == 200) {
+        final dynamic decoded = json.decode(ordersResponse.body);
+        if (decoded is List) {
+          _orders = decoded;
+          _totalOrders = _orders.length.toString();
+          double sumSales = 0.0;
+          for (var item in _orders) {
+            final double val =
+                double.tryParse(item['total']?.toString() ?? '0') ?? 0.0;
+            sumSales += val;
+          }
+          _totalSales = sumSales.toStringAsFixed(2);
         }
       } else {
-        throw Exception('Error: ${response.statusCode}');
+        _errorMessage = 'Order API Error: ${ordersResponse.statusCode}';
       }
+
+      try {
+        final reportsResponse =
+            await http.get(Uri.parse(_reportsUrl), headers: headers);
+        if (reportsResponse.statusCode == 200) {
+          final dynamic decodedReports = json.decode(reportsResponse.body);
+          if (decodedReports is List && decodedReports.isNotEmpty) {
+            final repSales = decodedReports[0]['total_sales']?.toString();
+            final repOrders = decodedReports[0]['total_orders']?.toString();
+            if (repSales != null && repSales.isNotEmpty && repSales != '0.00') {
+              _totalSales = repSales;
+            }
+            if (repOrders != null && repOrders.isNotEmpty && repOrders != '0') {
+              _totalOrders = repOrders;
+            }
+          }
+        }
+      } catch (_) {}
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('স্ট্যাটাস আপডেট ব্যর্থ হয়েছে: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _errorMessage = 'Connection Error: $e';
     } finally {
       if (mounted) {
-        setState(() => _isUpdating = false);
+        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final order = widget.orderData;
-    final billing = order['billing'] ?? {};
-    final phone = billing['phone']?.toString() ?? '';
-    final customerName = (billing['first_name'] != null &&
-            billing['first_name'].toString().isNotEmpty)
-        ? '${billing['first_name']} ${billing['last_name'] ?? ''}'.trim()
-        : 'Guest Customer';
-
-    final address = [
-      billing['address_1'],
-      billing['city'],
-      billing['state'],
-    ].where((e) => e != null && e.toString().isNotEmpty).join(', ');
-
-    final lineItems = (order['line_items'] as List<dynamic>?) ?? [];
-    final total = order['total']?.toString() ?? '0.00';
+    final theme = FlutterFlowTheme.of(context);
 
     return Scaffold(
+      key: scaffoldKey,
+      backgroundColor: theme.primaryBackground,
       appBar: AppBar(
+        backgroundColor: const Color(0xB2EE6083),
+        automaticallyImplyLeading: false,
         title: Text(
-          'Order #${order['id']}',
+          'Okybd',
           style: GoogleFonts.interTight(
             color: Colors.white,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: const Color(0xB2EE6083),
-        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _fetchDashboardData,
+          ),
+        ],
+        elevation: 2,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // কাস্টমার ইনফরমেশন কার্ড
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      customerName,
-                      style: GoogleFonts.inter(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone, size: 18, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Text(
-                          phone.isNotEmpty ? phone : 'ফোন নম্বর দেওয়া নেই',
-                          style: GoogleFonts.inter(fontSize: 15),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.location_on,
-                            size: 18, color: Colors.redAccent),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            address.isNotEmpty ? address : 'ঠিকানা দেওয়া নেই',
-                            style: GoogleFonts.inter(
-                                fontSize: 14, color: Colors.black87),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('মোট বিল:',
-                            style: GoogleFonts.inter(
-                                fontSize: 16, fontWeight: FontWeight.w600)),
-                        Text('TK $total',
-                            style: GoogleFonts.inter(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF21D421))),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // এক ক্লিকে কল এবং হোয়াটসঅ্যাপ বাটন
-            Row(
+      body: SafeArea(
+        top: true,
+        child: RefreshIndicator(
+          onRefresh: _fetchDashboardData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.call, color: Colors.white),
-                    label: Text(
-                      'Call',
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    onPressed: phone.isNotEmpty
-                        ? () => _makePhoneCall(phone)
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF25D366),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.chat, color: Colors.white),
-                    label: Text(
-                      'WhatsApp',
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    onPressed: phone.isNotEmpty
-                        ? () => _openWhatsApp(phone, order['id'].toString())
-                        : null,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // অর্ডার স্ট্যাটাস পরিবর্তন
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Text(
-                      'অর্ডার স্ট্যাটাস পরিবর্তন করুন:',
-                      style: GoogleFonts.inter(
-                          fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    if (_isUpdating)
-                      const Center(child: CircularProgressIndicator())
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: ['pending', 'processing', 'completed', 'cancelled']
-                                    .contains(_currentStatus)
-                                ? _currentStatus
-                                : 'processing',
-                            isExpanded: true,
-                            items: const [
-                              DropdownMenuItem(
-                                  value: 'pending', child: Text('Pending Payment')),
-                              DropdownMenuItem(
-                                  value: 'processing', child: Text('Processing (চলমান)')),
-                              DropdownMenuItem(
-                                  value: 'completed', child: Text('Completed (সম্পন্ন)')),
-                              DropdownMenuItem(
-                                  value: 'cancelled', child: Text('Cancelled (বাতিল)')),
-                            ],
-                            onChanged: (val) {
-                              if (val != null && val != _currentStatus) {
-                                _updateOrderStatus(val);
-                              }
-                            },
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.monetization_on,
+                                    color: Color(0xFF119AFF), size: 32),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'TK $_totalSales',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total Revenue',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.grey[700]),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.shopping_bag,
+                                    color: Color(0xFF1199FF), size: 32),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _totalOrders,
+                                  style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total Orders',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.grey[700]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // প্রোডাক্ট আইটেমসমূহ
-            Text(
-              'অর্ডারকৃত পণ্যসমূহ:',
-              style: GoogleFonts.inter(
-                  fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ...lineItems.map((item) {
-              return Card(
-                elevation: 1,
-                margin: const EdgeInsets.only(bottom: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                child: ListTile(
-                  title: Text(
-                    item['name'] ?? 'Product',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text('পরিমাণ: ${item['quantity']} টি'),
-                  trailing: Text(
-                    'TK ${item['total'] ?? '0'}',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Recent Orders',
+                        style: GoogleFonts.inter(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 22),
+                        onPressed: _fetchDashboardData,
+                      ),
+                    ],
                   ),
                 ),
-              );
-            }),
-          ],
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_orders.isEmpty && _errorMessage == null)
+                  const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: Text('No orders found')),
+                  )
+                else
+                  ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _orders.length,
+                    itemBuilder: (context, index) {
+                      final order = _orders[index];
+                      final billing = order['billing'] ?? {};
+                      final customerName = (billing['first_name'] != null &&
+                              billing['first_name'].toString().isNotEmpty)
+                          ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
+                              .trim()
+                          : 'Guest Customer';
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          elevation: 1,
+                          child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      OrderDetailsPageWidget(orderData: order),
+                                ),
+                              );
+                            },
+                            title: Text(
+                              customerName,
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            subtitle:
+                                Text('#${order['id']} • ${order['status'] ?? ''}'),
+                            trailing: Text(
+                              'TK ${order['total'] ?? '0'}',
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFF21D421),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
