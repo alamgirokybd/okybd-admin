@@ -14,30 +14,102 @@ class HomePageWidget extends StatefulWidget {
 class _HomePageWidgetState extends State<HomePageWidget> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  final List<Map<String, dynamic>> mockOrders = [
+final List<Map<String, dynamic>> mockOrders = [
     {
       'id': 1024,
+      'status': 'Processing',
+      'total': '1450',
+      'currency_symbol': '৳',
+      'date_created': '22 Sep 2026',
       'customer': 'Akash Hossain',
       'item': 'Smart Fingerprint Padlock',
-      'total': '৳ 1,450',
-      'status': 'Processing',
-      'date': '22 Sep 2026',
+      'billing': {
+        'first_name': 'Akash',
+        'last_name': 'Hossain',
+        'phone': '01712345678',
+        'address_1': 'Narsingdi Sadar',
+        'city': 'Narsingdi',
+        'state': 'Dhaka',
+      },
+      'shipping': {
+        'first_name': 'Akash',
+        'last_name': 'Hossain',
+        'phone': '01712345678',
+        'address_1': 'Narsingdi Sadar',
+        'city': 'Narsingdi',
+      },
+      'line_items': [
+        {
+          'name': 'Smart Fingerprint Padlock',
+          'quantity': 1,
+          'total': '1450',
+          'price': '1450',
+        }
+      ],
     },
     {
       'id': 1023,
+      'status': 'Completed',
+      'total': '2200',
+      'currency_symbol': '৳',
+      'date_created': '21 Sep 2026',
       'customer': 'Rahim Uddin',
       'item': 'Bluetooth Smart Lock',
-      'total': '৳ 2,200',
-      'status': 'Completed',
-      'date': '21 Sep 2026',
+      'billing': {
+        'first_name': 'Rahim',
+        'last_name': 'Uddin',
+        'phone': '01812345678',
+        'address_1': 'Mirpur 10',
+        'city': 'Dhaka',
+        'state': 'Dhaka',
+      },
+      'shipping': {
+        'first_name': 'Rahim',
+        'last_name': 'Uddin',
+        'phone': '01812345678',
+        'address_1': 'Mirpur 10',
+        'city': 'Dhaka',
+      },
+      'line_items': [
+        {
+          'name': 'Bluetooth Smart Lock',
+          'quantity': 1,
+          'total': '2200',
+          'price': '2200',
+        }
+      ],
     },
     {
       'id': 1022,
+      'status': 'Processing',
+      'total': '1450',
+      'currency_symbol': '৳',
+      'date_created': '20 Sep 2026',
       'customer': 'Kamal Hossain',
       'item': 'Smart Padlock A3',
-      'total': '৳ 1,450',
-      'status': 'Processing',
-      'date': '20 Sep 2026',
+      'billing': {
+        'first_name': 'Kamal',
+        'last_name': 'Hossain',
+        'phone': '01912345678',
+        'address_1': 'Uttara Sector 7',
+        'city': 'Dhaka',
+        'state': 'Dhaka',
+      },
+      'shipping': {
+        'first_name': 'Kamal',
+        'last_name': 'Hossain',
+        'phone': '01912345678',
+        'address_1': 'Uttara Sector 7',
+        'city': 'Dhaka',
+      },
+      'line_items': [
+        {
+          'name': 'Smart Padlock A3',
+          'quantity': 1,
+          'total': '1450',
+          'price': '1450',
+        }
+      ],
     },
   ];
 
