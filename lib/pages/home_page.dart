@@ -19,10 +19,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   String _totalSales = '0.00';
   String _totalOrders = '0';
 
-  // WooCommerce Credentials
-  final String _baseUrl = 'https://okybd.com/wp-json/wc/v3';
-  final String _consumerKey = 'ck_daec87e411b0e02c6fe9fc975f70bdf0a693ec97';
-  final String _consumerSecret = 'cs_9fb28e7e1a6c4349dbfa22b10a2f1a66ffad164f';
+  final String _ordersUrl =
+      'https://okybd.com/wp-json/wc/v3/orders?per_page=10&consumer_key=ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840&consumer_secret=cs_6d16165fbc1a7815876093e225317dfe714f39e6';
+  final String _reportsUrl =
+      'https://okybd.com/wp-json/wc/v3/reports/sales?consumer_key=ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840&consumer_secret=cs_6d16165fbc1a7815876093e225317dfe714f39e6';
 
   @override
   void initState() {
@@ -32,26 +32,17 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 
   Future<void> _fetchDashboardData() async {
     setState(() => _isLoading = true);
-    final String auth = 'Basic ' + base64Encode(utf8.encode('$_consumerKey:$_consumerSecret'));
 
     try {
-      // 1. Fetch Orders
-      final ordersResponse = await http.get(
-        Uri.parse('$_baseUrl/orders?per_page=20'),
-        headers: {'Authorization': auth},
-      );
-
+      // 1. Fetch Live Orders
+      final ordersResponse = await http.get(Uri.parse(_ordersUrl));
       if (ordersResponse.statusCode == 200) {
         final List<dynamic> ordersData = json.decode(ordersResponse.body);
         _orders = ordersData;
       }
 
-      // 2. Fetch Reports
-      final reportsResponse = await http.get(
-        Uri.parse('$_baseUrl/reports/sales'),
-        headers: {'Authorization': auth},
-      );
-
+      // 2. Fetch Live Sales Reports
+      final reportsResponse = await http.get(Uri.parse(_reportsUrl));
       if (reportsResponse.statusCode == 200) {
         final List<dynamic> reportsData = json.decode(reportsResponse.body);
         if (reportsData.isNotEmpty) {
@@ -60,7 +51,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching data: $e');
+      debugPrint('Error fetching WooCommerce data: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -119,16 +110,21 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               children: [
-                                const Icon(Icons.monetization_on, color: Color(0xFF119AFF), size: 32),
+                                const Icon(Icons.monetization_on,
+                                    color: Color(0xFF119AFF), size: 32),
                                 const SizedBox(height: 6),
                                 Text(
                                   'TK $_totalSales',
-                                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Total Revenue',
-                                  style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[700]),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.grey[700]),
                                 ),
                               ],
                             ),
@@ -148,16 +144,21 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               children: [
-                                const Icon(Icons.shopping_bag, color: Color(0xFF1199FF), size: 32),
+                                const Icon(Icons.shopping_bag,
+                                    color: Color(0xFF1199FF), size: 32),
                                 const SizedBox(height: 6),
                                 Text(
                                   _totalOrders,
-                                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Total Orders',
-                                  style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[700]),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.grey[700]),
                                 ),
                               ],
                             ),
@@ -174,7 +175,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                     children: [
                       Text(
                         'Recent Orders',
-                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.inter(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.refresh, size: 22),
@@ -202,29 +204,36 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                     itemBuilder: (context, index) {
                       final order = _orders[index];
                       final billing = order['billing'] ?? {};
-                      final customerName = (billing['first_name'] != null && billing['first_name'].toString().isNotEmpty)
-                          ? '${billing['first_name']} ${billing['last_name'] ?? ''}'.trim()
+                      final customerName = (billing['first_name'] != null &&
+                              billing['first_name'].toString().isNotEmpty)
+                          ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
+                              .trim()
                           : 'Guest Customer';
 
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
                         child: Card(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                           elevation: 1,
                           child: ListTile(
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => OrderDetailsPageWidget(orderData: order),
+                                  builder: (context) =>
+                                      OrderDetailsPageWidget(orderData: order),
                                 ),
                               );
                             },
                             title: Text(
                               customerName,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
                             ),
-                            subtitle: Text('#${order['id']} • ${order['status'] ?? ''}'),
+                            subtitle:
+                                Text('#${order['id']} • ${order['status'] ?? ''}'),
                             trailing: Text(
                               'TK ${order['total'] ?? '0'}',
                               style: GoogleFonts.inter(
