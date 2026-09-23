@@ -15,6 +15,7 @@ class HomePageWidget extends StatefulWidget {
 class _HomePageWidgetState extends State<HomePageWidget> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = true;
+  String? _errorMessage;
   List<dynamic> _orders = [];
   String _totalSales = '0.00';
   String _totalOrders = '0';
@@ -31,27 +32,42 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   }
 
   Future<void> _fetchDashboardData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final headers = {
+      'User-Agent':
+          'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
+      'Accept': 'application/json',
+    };
 
     try {
-      // 1. Fetch Live Orders
-      final ordersResponse = await http.get(Uri.parse(_ordersUrl));
+      // 1. Fetch Orders
+      final ordersResponse =
+          await http.get(Uri.parse(_ordersUrl), headers: headers);
       if (ordersResponse.statusCode == 200) {
-        final List<dynamic> ordersData = json.decode(ordersResponse.body);
-        _orders = ordersData;
+        final dynamic decoded = json.decode(ordersResponse.body);
+        if (decoded is List) {
+          _orders = decoded;
+        }
+      } else {
+        _errorMessage = 'Order API Error: ${ordersResponse.statusCode}';
       }
 
-      // 2. Fetch Live Sales Reports
-      final reportsResponse = await http.get(Uri.parse(_reportsUrl));
+      // 2. Fetch Reports
+      final reportsResponse =
+          await http.get(Uri.parse(_reportsUrl), headers: headers);
       if (reportsResponse.statusCode == 200) {
-        final List<dynamic> reportsData = json.decode(reportsResponse.body);
-        if (reportsData.isNotEmpty) {
-          _totalSales = reportsData[0]['total_sales']?.toString() ?? '0.00';
-          _totalOrders = reportsData[0]['total_orders']?.toString() ?? '0';
+        final dynamic decodedReports = json.decode(reportsResponse.body);
+        if (decodedReports is List && decodedReports.isNotEmpty) {
+          _totalSales = decodedReports[0]['total_sales']?.toString() ?? '0.00';
+          _totalOrders = decodedReports[0]['total_orders']?.toString() ?? '0';
         }
       }
     } catch (e) {
-      debugPrint('Error fetching WooCommerce data: $e');
+      _errorMessage = 'Connection Error: $e';
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -185,12 +201,24 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                     ],
                   ),
                 ),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 if (_isLoading)
                   const Padding(
                     padding: EdgeInsets.all(40),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                else if (_orders.isEmpty)
+                else if (_orders.isEmpty && _errorMessage == null)
                   const Padding(
                     padding: EdgeInsets.all(40),
                     child: Center(child: Text('No orders found')),
