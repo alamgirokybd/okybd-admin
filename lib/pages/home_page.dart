@@ -38,9 +38,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   Future<void> _makePhoneCall(String phoneNumber) async {
     final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
     final uri = Uri.parse('tel:$cleanNumber');
-    if (await canLaunchUrl(uri)) {
+    try {
       await launchUrl(uri);
-    } else {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ফোন ডায়ালার ওপেন করা যায়নি!')),
@@ -49,7 +49,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
+  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন (Android 11+ সাপোর্টেড)
   Future<void> _openWhatsApp(String phoneNumber, String orderId) async {
     String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanNumber.startsWith('0')) {
@@ -62,14 +62,24 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       'প্রিয় কাস্টমার, Okybd থেকে আপনার #$orderId নম্বর অর্ডারের বিষয়ে যোগাযোগ করা হয়েছে। আপনার অর্ডারটি কনফার্ম করতে অনুগ্রহ করে রিপ্লাই দিন। ধন্যবাদ!',
     );
 
-    final uri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('হোয়াটসঅ্যাপ ওপেন করা যায়নি!')),
-        );
+    // প্রথমে সরাসরি WhatsApp অ্যাপ দিয়ে খোলার চেষ্টা, না হলে ব্রাউজার দিয়ে
+    final appUri = Uri.parse('whatsapp://send?phone=$cleanNumber&text=$message');
+    final webUri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
+
+    try {
+      bool launched = await launchUrl(appUri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      try {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('হোয়াটসঅ্যাপ ওপেন করা যায়নি!')),
+          );
+        }
       }
     }
   }
