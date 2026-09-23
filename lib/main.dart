@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
       ),
-      home: const HomePageWidget(),
+      home: HomePageWidget(),
     );
   }
 }
