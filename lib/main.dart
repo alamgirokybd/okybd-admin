@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '/pages/home_page.dart';
+import 'pages/home_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
       ),
-      home: const HomePageWidget(),
+      home: HomePageWidget(),
     );
   }
 }
