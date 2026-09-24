@@ -49,7 +49,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন (Android 11+ সাপোর্টেড)
+  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
   Future<void> _openWhatsApp(String phoneNumber, String orderId) async {
     String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanNumber.startsWith('0')) {
@@ -62,12 +62,12 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       'প্রিয় কাস্টমার, Okybd থেকে আপনার #$orderId নম্বর অর্ডারের বিষয়ে যোগাযোগ করা হয়েছে। আপনার অর্ডারটি কনফার্ম করতে অনুগ্রহ করে রিপ্লাই দিন। ধন্যবাদ!',
     );
 
-    // প্রথমে সরাসরি WhatsApp অ্যাপ দিয়ে খোলার চেষ্টা, না হলে ব্রাউজার দিয়ে
     final appUri = Uri.parse('whatsapp://send?phone=$cleanNumber&text=$message');
     final webUri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
 
     try {
-      bool launched = await launchUrl(appUri, mode: LaunchMode.externalApplication);
+      bool launched =
+          await launchUrl(appUri, mode: LaunchMode.externalApplication);
       if (!launched) {
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
       }
@@ -104,7 +104,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('অর্ডার #$orderId স্ট্যাটাস সফলভাবে "$newStatus" হয়েছে!'),
+              content:
+                  Text('অর্ডার #$orderId স্ট্যাটাস সফলভাবে "$newStatus" হয়েছে!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -121,6 +122,199 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         );
       }
     }
+  }
+
+  // অর্ডারের নাম বা কার্ডে ক্লিক করলে ঠিকানাসহ বিস্তারিত দেখানোর উইন্ডো
+  void _showOrderDetailsModal(dynamic order) {
+    final billing = order['billing'] ?? {};
+    final phone = billing['phone']?.toString() ?? '';
+    final customerName = (billing['first_name'] != null &&
+            billing['first_name'].toString().isNotEmpty)
+        ? '${billing['first_name']} ${billing['last_name'] ?? ''}'.trim()
+        : 'Guest Customer';
+
+    final addressParts = [
+      billing['address_1'],
+      billing['address_2'],
+      billing['city'],
+      billing['state'],
+    ].where((e) => e != null && e.toString().trim().isNotEmpty).toList();
+
+    final address = addressParts.isNotEmpty
+        ? addressParts.join(', ')
+        : 'ঠিকানা পাওয়া যায়নি';
+
+    final lineItems = (order['line_items'] as List<dynamic>?) ?? [];
+    final total = order['total']?.toString() ?? '0.00';
+    final currentStatus = order['status'] ?? 'pending';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Order #${order['id']}',
+                      style: GoogleFonts.interTight(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFD83B65),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.pink.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        currentStatus,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFD83B65),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Text(
+                  'কাস্টমার তথ্য:',
+                  style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  customerName,
+                  style: GoogleFonts.inter(
+                      fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.phone, size: 18, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Text(
+                      phone.isNotEmpty ? phone : 'ফোন নম্বর নেই',
+                      style: GoogleFonts.inter(fontSize: 15),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on,
+                        size: 18, color: Colors.redAccent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        address,
+                        style: GoogleFonts.inter(
+                            fontSize: 14, color: Colors.black87, height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Text(
+                  'অর্ডারকৃত পণ্যসমূহ:',
+                  style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                ...lineItems.map((item) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item['name'] ?? 'Product',
+                                style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w600, fontSize: 14),
+                              ),
+                              Text(
+                                'পরিমাণ: ${item['quantity']} টি',
+                                style: GoogleFonts.inter(
+                                    fontSize: 12, color: Colors.grey[700]),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          'TK ${item['total'] ?? '0'}',
+                          style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('মোট বিল:',
+                        style: GoogleFonts.inter(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text('TK $total',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF21D421),
+                        )),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _fetchDashboardData() async {
@@ -353,106 +547,129 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                           elevation: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => _showOrderDetailsModal(order),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: Column(
+                                children: [
+                                  // কাস্টমারের নাম ও টাকার অংশে চাপ দিলে ঠিকানা ও ডিটেইলস পপ-আপ আসবে
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              customerName,
+                                              style: GoogleFonts.inter(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '#${order['id']} • $currentStatus',
+                                              style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        'TK ${order['total'] ?? '0'}',
+                                        style: GoogleFonts.inter(
+                                          color: const Color(0xFF21D421),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(height: 16),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // স্ট্যাটাস পরিবর্তন ড্রপডাউন
+                                      DropdownButton<String>(
+                                        value: [
+                                          'pending',
+                                          'processing',
+                                          'completed',
+                                          'cancelled'
+                                        ].contains(currentStatus)
+                                            ? currentStatus
+                                            : 'processing',
+                                        isDense: true,
+                                        underline: const SizedBox(),
+                                        items: const [
+                                          DropdownMenuItem(
+                                              value: 'pending',
+                                              child: Text('Pending',
+                                                  style:
+                                                      TextStyle(fontSize: 13))),
+                                          DropdownMenuItem(
+                                              value: 'processing',
+                                              child: Text('Processing',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.blue))),
+                                          DropdownMenuItem(
+                                              value: 'completed',
+                                              child: Text('Completed',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.green))),
+                                          DropdownMenuItem(
+                                              value: 'cancelled',
+                                              child: Text('Cancelled',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.red))),
+                                        ],
+                                        onChanged: (newStatus) {
+                                          if (newStatus != null &&
+                                              newStatus != currentStatus) {
+                                            _updateOrderStatus(
+                                                order['id'], newStatus);
+                                          }
+                                        },
+                                      ),
+                                      // কল ও হোয়াটসঅ্যাপ অ্যাকশন বাটন
+                                      Row(
                                         children: [
-                                          Text(
-                                            customerName,
-                                            style: GoogleFonts.inter(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16),
+                                          IconButton(
+                                            icon: const Icon(Icons.call,
+                                                color: Colors.green, size: 22),
+                                            tooltip: 'Call Customer',
+                                            onPressed: phone.isNotEmpty
+                                                ? () => _makePhoneCall(phone)
+                                                : null,
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '#${order['id']} • $currentStatus',
-                                            style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 13),
+                                          const SizedBox(width: 4),
+                                          IconButton(
+                                            icon: const Icon(Icons.chat,
+                                                color: Color(0xFF25D366),
+                                                size: 22),
+                                            tooltip: 'WhatsApp',
+                                            onPressed: phone.isNotEmpty
+                                                ? () => _openWhatsApp(
+                                                    phone,
+                                                    order['id'].toString())
+                                                : null,
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    Text(
-                                      'TK ${order['total'] ?? '0'}',
-                                      style: GoogleFonts.inter(
-                                        color: const Color(0xFF21D421),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Divider(height: 16),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // স্ট্যাটাস পরিবর্তন ড্রপডাউন
-                                    DropdownButton<String>(
-                                      value: ['pending', 'processing', 'completed', 'cancelled']
-                                              .contains(currentStatus)
-                                          ? currentStatus
-                                          : 'processing',
-                                      isDense: true,
-                                      underline: const SizedBox(),
-                                      items: const [
-                                        DropdownMenuItem(
-                                            value: 'pending',
-                                            child: Text('Pending', style: TextStyle(fontSize: 13))),
-                                        DropdownMenuItem(
-                                            value: 'processing',
-                                            child: Text('Processing', style: TextStyle(fontSize: 13, color: Colors.blue))),
-                                        DropdownMenuItem(
-                                            value: 'completed',
-                                            child: Text('Completed', style: TextStyle(fontSize: 13, color: Colors.green))),
-                                        DropdownMenuItem(
-                                            value: 'cancelled',
-                                            child: Text('Cancelled', style: TextStyle(fontSize: 13, color: Colors.red))),
-                                      ],
-                                      onChanged: (newStatus) {
-                                        if (newStatus != null && newStatus != currentStatus) {
-                                          _updateOrderStatus(order['id'], newStatus);
-                                        }
-                                      },
-                                    ),
-                                    // কল ও হোয়াটসঅ্যাপ অ্যাকশন বাটন
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.call,
-                                              color: Colors.green, size: 22),
-                                          tooltip: 'Call Customer',
-                                          onPressed: phone.isNotEmpty
-                                              ? () => _makePhoneCall(phone)
-                                              : null,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        IconButton(
-                                          icon: const Icon(Icons.chat,
-                                              color: Color(0xFF25D366),
-                                              size: 22),
-                                          tooltip: 'WhatsApp',
-                                          onPressed: phone.isNotEmpty
-                                              ? () => _openWhatsApp(
-                                                  phone, order['id'].toString())
-                                              : null,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
