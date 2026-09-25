@@ -34,7 +34,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     _fetchDashboardData();
   }
 
-  // কাস্টমারকে সরাসরি কল করার ফাংশন
+  // কাস্টমারকে সরাসরি সিম দিয়ে কল করার ফাংশন
   Future<void> _makePhoneCall(String phoneNumber) async {
     final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
     final uri = Uri.parse('tel:$cleanNumber');
@@ -49,21 +49,60 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
-  Future<void> _openWhatsApp(String phoneNumber, String orderId) async {
-    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+  // সম্পূর্ণ ডিটেইলস সহ হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
+  Future<void> _openWhatsApp(dynamic order) async {
+    final billing = order['billing'] ?? {};
+    final rawPhone = billing['phone']?.toString() ?? '';
+    if (rawPhone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ফোন নম্বর পাওয়া যায়নি!')),
+        );
+      }
+      return;
+    }
+
+    String cleanNumber = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanNumber.startsWith('0')) {
       cleanNumber = '88$cleanNumber';
     } else if (!cleanNumber.startsWith('880')) {
       cleanNumber = '880$cleanNumber';
     }
 
-    final message = Uri.encodeComponent(
-      'প্রিয় কাস্টমার, Okybd থেকে আপনার #$orderId নম্বর অর্ডারের বিষয়ে যোগাযোগ করা হয়েছে। আপনার অর্ডারটি কনফার্ম করতে অনুগ্রহ করে রিপ্লাই দিন। ধন্যবাদ!',
-    );
+    final customerName = (billing['first_name'] != null &&
+            billing['first_name'].toString().isNotEmpty)
+        ? '${billing['first_name']} ${billing['last_name'] ?? ''}'.trim()
+        : 'Customer';
 
-    final appUri = Uri.parse('whatsapp://send?phone=$cleanNumber&text=$message');
-    final webUri = Uri.parse('https://wa.me/$cleanNumber?text=$message');
+    final lineItems = (order['line_items'] as List<dynamic>?) ?? [];
+    String itemsText = '';
+    for (var item in lineItems) {
+      itemsText += '- ${item['name']} (x${item['quantity']})\n';
+    }
+    if (itemsText.isEmpty) itemsText = '- Product\n';
+
+    final total = order['total']?.toString() ?? '0';
+    final addressParts = [
+      billing['address_1'],
+      billing['city'],
+    ].where((e) => e != null && e.toString().trim().isNotEmpty).toList();
+    final address = addressParts.isNotEmpty ? addressParts.join(', ') : 'ঠিকানা';
+
+    final fullMessage = '''
+প্রিয় $customerName,
+Okybd থেকে আপনার অর্ডারটি নিশ্চিত করতে যোগাযোগ করা হয়েছে।
+
+📦 অর্ডার নম্বর: #${order['id']}
+🛍️ পণ্যসমূহ:
+$itemsText💰 মোট বিল: TK $total
+🚚 ডেলিভারি ঠিকানা: $address
+
+আপনার অর্ডারটি ডেলিভারির জন্য কনফার্ম করতে অনুগ্রহ করে 'YES' লিখে বা একটি রিপ্লাই দিন। ধন্যবাদ!
+''';
+
+    final encodedMessage = Uri.encodeComponent(fullMessage);
+    final appUri = Uri.parse('whatsapp://send?phone=$cleanNumber&text=$encodedMessage');
+    final webUri = Uri.parse('https://wa.me/$cleanNumber?text=$encodedMessage');
 
     try {
       bool launched =
@@ -555,7 +594,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                   horizontal: 12, vertical: 8),
                               child: Column(
                                 children: [
-                                  // কাস্টমারের নাম ও টাকার অংশে চাপ দিলে ঠিকানা ও ডিটেইলস পপ-আপ আসবে
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -596,7 +634,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // স্ট্যাটাস পরিবর্তন ড্রপডাউন
                                       DropdownButton<String>(
                                         value: [
                                           'pending',
@@ -641,7 +678,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           }
                                         },
                                       ),
-                                      // কল ও হোয়াটসঅ্যাপ অ্যাকশন বাটন
                                       Row(
                                         children: [
                                           IconButton(
@@ -659,9 +695,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                 size: 22),
                                             tooltip: 'WhatsApp',
                                             onPressed: phone.isNotEmpty
-                                                ? () => _openWhatsApp(
-                                                    phone,
-                                                    order['id'].toString())
+                                                ? () => _openWhatsApp(order)
                                                 : null,
                                           ),
                                         ],
