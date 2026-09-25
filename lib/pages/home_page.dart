@@ -14,6 +14,8 @@ class HomePageWidget extends StatefulWidget {
 
 class _HomePageWidgetState extends State<HomePageWidget> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  int _selectedTabIndex = 0;
+
   bool _isLoading = true;
   String? _errorMessage;
   List<dynamic> _orders = [];
@@ -34,7 +36,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     _fetchDashboardData();
   }
 
-  // কাস্টমারকে সরাসরি সিম দিয়ে কল করার ফাংশন
+  // কাস্টমারকে সরাসরি কল করার ফাংশন
   Future<void> _makePhoneCall(String phoneNumber) async {
     final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
     final uri = Uri.parse('tel:$cleanNumber');
@@ -49,7 +51,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  // সম্পূর্ণ ডিটেইলস সহ হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
+  // সরাসরি হোয়াটসঅ্যাপে মেসেজ পাঠানোর ফাংশন
   Future<void> _openWhatsApp(dynamic order) async {
     final billing = order['billing'] ?? {};
     final rawPhone = billing['phone']?.toString() ?? '';
@@ -101,7 +103,8 @@ $itemsText💰 মোট বিল: TK $total
 ''';
 
     final encodedMessage = Uri.encodeComponent(fullMessage);
-    final appUri = Uri.parse('whatsapp://send?phone=$cleanNumber&text=$encodedMessage');
+    final appUri =
+        Uri.parse('whatsapp://send?phone=$cleanNumber&text=$encodedMessage');
     final webUri = Uri.parse('https://wa.me/$cleanNumber?text=$encodedMessage');
 
     try {
@@ -123,7 +126,7 @@ $itemsText💰 মোট বিল: TK $total
     }
   }
 
-  // অর্ডার স্ট্যাটাস সরাসরি আপডেট করার ফাংশন
+  // অর্ডার স্ট্যাটাস আপডেট
   Future<void> _updateOrderStatus(int orderId, String newStatus) async {
     final url = Uri.parse(
       'https://okybd.com/wp-json/wc/v3/orders/$orderId?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret',
@@ -163,7 +166,7 @@ $itemsText💰 মোট বিল: TK $total
     }
   }
 
-  // অর্ডারের নাম বা কার্ডে ক্লিক করলে ঠিকানাসহ বিস্তারিত দেখানোর উইন্ডো
+  // অর্ডারের বিস্তারিত বটম শীট
   void _showOrderDetailsModal(dynamic order) {
     final billing = order['billing'] ?? {};
     final phone = billing['phone']?.toString() ?? '';
@@ -414,6 +417,422 @@ $itemsText💰 মোট বিল: TK $total
     }
   }
 
+  // ১ম স্ক্রিন: বর্তমান অর্ডার ড্যাশবোর্ড
+  Widget _buildOrdersDashboard(FlutterFlowTheme theme) {
+    return RefreshIndicator(
+      onRefresh: _fetchDashboardData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.monetization_on,
+                                color: Color(0xFF119AFF), size: 32),
+                            const SizedBox(height: 6),
+                            Text(
+                              'TK $_totalSales',
+                              style: GoogleFonts.inter(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total Revenue',
+                              style: GoogleFonts.inter(
+                                  fontSize: 13, color: Colors.grey[700]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.shopping_bag,
+                                color: Color(0xFF1199FF), size: 32),
+                            const SizedBox(height: 6),
+                            Text(
+                              _totalOrders,
+                              style: GoogleFonts.inter(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total Orders',
+                              style: GoogleFonts.inter(
+                                  fontSize: 13, color: Colors.grey[700]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Orders',
+                    style: GoogleFonts.inter(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 22),
+                    onPressed: _fetchDashboardData,
+                  ),
+                ],
+              ),
+            ),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_orders.isEmpty && _errorMessage == null)
+              const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: Text('No orders found')),
+              )
+            else
+              ListView.builder(
+                padding: const EdgeInsets.only(bottom: 20),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _orders.length,
+                itemBuilder: (context, index) {
+                  final order = _orders[index];
+                  final billing = order['billing'] ?? {};
+                  final phone = billing['phone']?.toString() ?? '';
+                  final customerName = (billing['first_name'] != null &&
+                          billing['first_name'].toString().isNotEmpty)
+                      ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
+                          .trim()
+                      : 'Guest Customer';
+                  final currentStatus = order['status'] ?? 'pending';
+
+                  return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 1,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => _showOrderDetailsModal(order),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          customerName,
+                                          style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '#${order['id']} • $currentStatus',
+                                          style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    'TK ${order['total'] ?? '0'}',
+                                    style: GoogleFonts.inter(
+                                      color: const Color(0xFF21D421),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  DropdownButton<String>(
+                                    value: [
+                                      'pending',
+                                      'processing',
+                                      'completed',
+                                      'cancelled'
+                                    ].contains(currentStatus)
+                                        ? currentStatus
+                                        : 'processing',
+                                    isDense: true,
+                                    underline: const SizedBox(),
+                                    items: const [
+                                      DropdownMenuItem(
+                                          value: 'pending',
+                                          child: Text('Pending',
+                                              style: TextStyle(fontSize: 13))),
+                                      DropdownMenuItem(
+                                          value: 'processing',
+                                          child: Text('Processing',
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.blue))),
+                                      DropdownMenuItem(
+                                          value: 'completed',
+                                          child: Text('Completed',
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.green))),
+                                      DropdownMenuItem(
+                                          value: 'cancelled',
+                                          child: Text('Cancelled',
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.red))),
+                                    ],
+                                    onChanged: (newStatus) {
+                                      if (newStatus != null &&
+                                          newStatus != currentStatus) {
+                                        _updateOrderStatus(
+                                            order['id'], newStatus);
+                                      }
+                                    },
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.call,
+                                            color: Colors.green, size: 22),
+                                        tooltip: 'Call Customer',
+                                        onPressed: phone.isNotEmpty
+                                            ? () => _makePhoneCall(phone)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      IconButton(
+                                        icon: const Icon(Icons.chat,
+                                            color: Color(0xFF25D366),
+                                            size: 22),
+                                        tooltip: 'WhatsApp',
+                                        onPressed: phone.isNotEmpty
+                                            ? () => _openWhatsApp(order)
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ২য় স্ক্রিন: স্বয়ংক্রিয় কমপ্লিটেড অর্ডার শিট / সেলস রেকর্ড
+  Widget _buildCompletedOrdersSheet() {
+    final completedOrders =
+        _orders.where((o) => o['status'] == 'completed').toList();
+
+    double totalCompletedAmount = 0.0;
+    for (var o in completedOrders) {
+      totalCompletedAmount +=
+          double.tryParse(o['total']?.toString() ?? '0') ?? 0.0;
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchDashboardData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // সামারি ব্যানার
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'মোট সফল ডেলিভারি',
+                        style: GoogleFonts.inter(
+                            fontSize: 13, color: Colors.green.shade900),
+                      ),
+                      Text(
+                        '${completedOrders.length} টি পার্সেল',
+                        style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade900),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'মোট আদায়কৃত টাকা',
+                        style: GoogleFonts.inter(
+                            fontSize: 13, color: Colors.green.shade900),
+                      ),
+                      Text(
+                        'TK ${totalCompletedAmount.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade900),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (completedOrders.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(
+                    child: Text('কোনো Completed অর্ডার পাওয়া যায়নি')),
+              )
+            else
+              ...completedOrders.map((order) {
+                final billing = order['billing'] ?? {};
+                final customerName = (billing['first_name'] != null &&
+                        billing['first_name'].toString().isNotEmpty)
+                    ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
+                        .trim()
+                    : 'Customer';
+                final phone = billing['phone']?.toString() ?? 'নম্বর নেই';
+                final address = [
+                  billing['address_1'],
+                  billing['city'],
+                ]
+                    .where((e) => e != null && e.toString().trim().isNotEmpty)
+                    .join(', ');
+
+                final lineItems = (order['line_items'] as List<dynamic>?) ?? [];
+                String itemsSummary = lineItems
+                    .map((i) => '${i['name']} (x${i['quantity']})')
+                    .join(', ');
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  elevation: 1,
+                  child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          customerName,
+                          style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        Text(
+                          'TK ${order['total'] ?? '0'}',
+                          style: GoogleFonts.inter(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15),
+                        ),
+                      ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text('📞 $phone • #${order['id']}',
+                            style: const TextStyle(fontSize: 13)),
+                        if (address.isNotEmpty)
+                          Text('📍 $address',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[700])),
+                        if (itemsSummary.isNotEmpty)
+                          Text('🛍️ $itemsSummary',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.blueGrey[800])),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
@@ -425,7 +844,7 @@ $itemsText💰 মোট বিল: TK $total
         backgroundColor: const Color(0xB2EE6083),
         automaticallyImplyLeading: false,
         title: Text(
-          'Okybd',
+          _selectedTabIndex == 0 ? 'Okybd' : 'Completed Sales Sheet',
           style: GoogleFonts.interTight(
             color: Colors.white,
             fontSize: 22,
@@ -442,278 +861,30 @@ $itemsText💰 মোট বিল: TK $total
       ),
       body: SafeArea(
         top: true,
-        child: RefreshIndicator(
-          onRefresh: _fetchDashboardData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.monetization_on,
-                                    color: Color(0xFF119AFF), size: 32),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'TK $_totalSales',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Total Revenue',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: Colors.grey[700]),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 1,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.shopping_bag,
-                                    color: Color(0xFF1199FF), size: 32),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _totalOrders,
-                                  style: GoogleFonts.inter(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Total Orders',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: Colors.grey[700]),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Recent Orders',
-                        style: GoogleFonts.inter(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, size: 22),
-                        onPressed: _fetchDashboardData,
-                      ),
-                    ],
-                  ),
-                ),
-                if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (_orders.isEmpty && _errorMessage == null)
-                  const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(child: Text('No orders found')),
-                  )
-                else
-                  ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _orders.length,
-                    itemBuilder: (context, index) {
-                      final order = _orders[index];
-                      final billing = order['billing'] ?? {};
-                      final phone = billing['phone']?.toString() ?? '';
-                      final customerName = (billing['first_name'] != null &&
-                              billing['first_name'].toString().isNotEmpty)
-                          ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
-                              .trim()
-                          : 'Guest Customer';
-                      final currentStatus = order['status'] ?? 'pending';
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          elevation: 1,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () => _showOrderDetailsModal(order),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              customerName,
-                                              style: GoogleFonts.inter(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '#${order['id']} • $currentStatus',
-                                              style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        'TK ${order['total'] ?? '0'}',
-                                        style: GoogleFonts.inter(
-                                          color: const Color(0xFF21D421),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 16),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      DropdownButton<String>(
-                                        value: [
-                                          'pending',
-                                          'processing',
-                                          'completed',
-                                          'cancelled'
-                                        ].contains(currentStatus)
-                                            ? currentStatus
-                                            : 'processing',
-                                        isDense: true,
-                                        underline: const SizedBox(),
-                                        items: const [
-                                          DropdownMenuItem(
-                                              value: 'pending',
-                                              child: Text('Pending',
-                                                  style:
-                                                      TextStyle(fontSize: 13))),
-                                          DropdownMenuItem(
-                                              value: 'processing',
-                                              child: Text('Processing',
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.blue))),
-                                          DropdownMenuItem(
-                                              value: 'completed',
-                                              child: Text('Completed',
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.green))),
-                                          DropdownMenuItem(
-                                              value: 'cancelled',
-                                              child: Text('Cancelled',
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.red))),
-                                        ],
-                                        onChanged: (newStatus) {
-                                          if (newStatus != null &&
-                                              newStatus != currentStatus) {
-                                            _updateOrderStatus(
-                                                order['id'], newStatus);
-                                          }
-                                        },
-                                      ),
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.call,
-                                                color: Colors.green, size: 22),
-                                            tooltip: 'Call Customer',
-                                            onPressed: phone.isNotEmpty
-                                                ? () => _makePhoneCall(phone)
-                                                : null,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          IconButton(
-                                            icon: const Icon(Icons.chat,
-                                                color: Color(0xFF25D366),
-                                                size: 22),
-                                            tooltip: 'WhatsApp',
-                                            onPressed: phone.isNotEmpty
-                                                ? () => _openWhatsApp(order)
-                                                : null,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
-            ),
+        child: _selectedTabIndex == 0
+            ? _buildOrdersDashboard(theme)
+            : _buildCompletedOrdersSheet(),
+      ),
+      // নিচে পরিষ্কার নেভিগেশন বার
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedTabIndex,
+        selectedItemColor: const Color(0xFFD83B65),
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          setState(() {
+            _selectedTabIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Orders',
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.table_chart_outlined),
+            label: 'Sales Sheet',
+          ),
+        ],
       ),
     );
   }
