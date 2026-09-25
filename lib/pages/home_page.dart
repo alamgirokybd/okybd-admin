@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,11 +36,29 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   late final String _reportsUrl =
       'https://okybd.com/wp-json/wc/v3/reports/sales?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret';
 
+  // আপনার ফেসবুক ও ইউটিউব লিংক
+  final String _facebookUrl = 'https://facebook.com'; // আপনার পেজের লিংক দিন
+  final String _youtubeUrl = 'https://youtube.com';   // আপনার ইউটিউব লিংক দিন
+
   @override
   void initState() {
     super.initState();
     _fetchDashboardData();
     _loadNotes();
+  }
+
+  // সোশ্যাল মিডিয়া লিংক খোলার ফাংশন
+  Future<void> _openSocialLink(String urlString) async {
+    final uri = Uri.parse(urlString);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('লিংক ওপেন করা যায়নি!')),
+        );
+      }
+    }
   }
 
   // সংরক্ষিত নোট লোড করা
@@ -456,7 +475,7 @@ $itemsText💰 মোট বিল: TK $total
     }
   }
 
-  // ১ম স্ক্রিন: বর্তমান অর্ডার ড্যাশবোর্ড
+  // ১ বাটন: ড্যাশবোর্ড
   Widget _buildOrdersDashboard(FlutterFlowTheme theme) {
     return RefreshIndicator(
       onRefresh: _fetchDashboardData,
@@ -586,9 +605,9 @@ $itemsText💰 মোট বিল: TK $total
                   final phone = billing['phone']?.toString() ?? '';
                   final customerName = (billing['first_name'] != null &&
                           billing['first_name'].toString().isNotEmpty)
-                      ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
-                          .trim()
-                      : 'Guest Customer';
+                    ? '${billing['first_name']} ${billing['last_name'] ?? ''}'
+                        .trim()
+                    : 'Guest Customer';
                   final currentStatus = order['status'] ?? 'pending';
 
                   return Padding(
@@ -877,7 +896,6 @@ $itemsText💰 মোট বিল: TK $total
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ইনপুট বক্স ও ভয়েস টাইপিং নির্দেশনা
           Row(
             children: [
               Expanded(
@@ -926,7 +944,6 @@ $itemsText💰 মোট বিল: TK $total
             ],
           ),
           const Divider(height: 24),
-          // নোট তালিকা
           Expanded(
             child: _dailyNotes.isEmpty
                 ? Center(
@@ -982,9 +999,9 @@ $itemsText💰 মোট বিল: TK $total
 
     String appTitle = 'Okybd';
     if (_selectedTabIndex == 1) {
-      appTitle = 'Completed Sales Sheet';
+      appTitle = 'Sales Sheet';
     } else if (_selectedTabIndex == 2) {
-      appTitle = 'Daily Task & Voice Notes';
+      appTitle = 'Daily Notes';
     }
 
     return Scaffold(
@@ -1002,9 +1019,22 @@ $itemsText💰 মোট বিল: TK $total
           ),
         ),
         actions: [
+          // ফেসবুক পেজ আইকন বাটন
+          IconButton(
+            icon: const FaIcon(FontAwesomeIcons.facebook, color: Colors.white, size: 20),
+            tooltip: 'Facebook Page',
+            onPressed: () => _openSocialLink(_facebookUrl),
+          ),
+          // ইউটিউব চ্যানেল আইকন বাটন
+          IconButton(
+            icon: const FaIcon(FontAwesomeIcons.youtube, color: Colors.white, size: 20),
+            tooltip: 'YouTube Channel',
+            onPressed: () => _openSocialLink(_youtubeUrl),
+          ),
           if (_selectedTabIndex != 2)
             IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
+              icon: const Icon(Icons.refresh, color: Colors.white, size: 22),
+              tooltip: 'Refresh',
               onPressed: _fetchDashboardData,
             ),
         ],
