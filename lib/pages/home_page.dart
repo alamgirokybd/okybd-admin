@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../flutter_flow/flutter_flow_theme.dart';
 
 class HomePageWidget extends StatefulWidget {
@@ -22,6 +23,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   String _totalSales = '0.00';
   String _totalOrders = '0';
 
+  // ডেলি নোট ও টাস্কের ভ্যারিয়েবল
+  List<String> _dailyNotes = [];
+  final TextEditingKey = TextEditingController();
+
   final String _consumerKey = 'ck_45ae03c28b4b8b6fc1ff1b1d1ef3e6e0062db840';
   final String _consumerSecret = 'cs_6d16165fbc1a7815876093e225317dfe714f39e6';
 
@@ -34,6 +39,40 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   void initState() {
     super.initState();
     _fetchDashboardData();
+    _loadNotes();
+  }
+
+  // সংরক্ষিত নোট লোড করা
+  Future<void> _loadNotes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _dailyNotes = prefs.getStringList('okybd_daily_notes') ?? [];
+      });
+    } catch (_) {}
+  }
+
+  // নতুন নোট সংরক্ষণ করা
+  Future<void> _saveNotes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('okybd_daily_notes', _dailyNotes);
+    } catch (_) {}
+  }
+
+  void _addNote(String text) {
+    if (text.trim().isEmpty) return;
+    setState(() {
+      _dailyNotes.insert(0, text.trim());
+    });
+    _saveNotes();
+  }
+
+  void _deleteNote(int index) {
+    setState(() {
+      _dailyNotes.removeAt(index);
+    });
+    _saveNotes();
   }
 
   // কাস্টমারকে সরাসরি কল করার ফাংশন
@@ -126,7 +165,7 @@ $itemsText💰 মোট বিল: TK $total
     }
   }
 
-  // অর্ডার স্ট্যাটাস আপডেট
+  // অর্ডার স্ট্যাটাস সরাসরি আপডেট করার ফাংশন
   Future<void> _updateOrderStatus(int orderId, String newStatus) async {
     final url = Uri.parse(
       'https://okybd.com/wp-json/wc/v3/orders/$orderId?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret',
@@ -688,7 +727,7 @@ $itemsText💰 মোট বিল: TK $total
     );
   }
 
-  // ২য় স্ক্রিন: স্বয়ংক্রিয় কমপ্লিটেড অর্ডার শিট / সেলস রেকর্ড
+  // ২য় স্ক্রিন: কমপ্লিটেড সেলস শিট
   Widget _buildCompletedOrdersSheet() {
     final completedOrders =
         _orders.where((o) => o['status'] == 'completed').toList();
@@ -707,7 +746,6 @@ $itemsText💰 মোট বিল: TK $total
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // সামারি ব্যানার
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -759,8 +797,7 @@ $itemsText💰 মোট বিল: TK $total
             if (completedOrders.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(40),
-                child: Center(
-                    child: Text('কোনো Completed অর্ডার পাওয়া যায়নি')),
+                child: Center(child: Text('কোনো Completed অর্ডার পাওয়া যায়নি')),
               )
             else
               ...completedOrders.map((order) {
@@ -833,9 +870,122 @@ $itemsText💰 মোট বিল: TK $total
     );
   }
 
+  // ৩য় স্ক্রিন: ভয়েস ও ডেইলি টাস্ক নোটপ্যাড
+  Widget _buildDailyNotesTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ইনপুট বক্স ও ভয়েস টাইপিং নির্দেশনা
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: TextEditingKey,
+                  decoration: InputDecoration(
+                    hintText: 'নতুন কাজের নোট লিখুন বা কিবোর্ড মাইক চাপুন...',
+                    hintStyle: GoogleFonts.inter(fontSize: 13),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onSubmitted: (val) {
+                    _addNote(val);
+                    TextEditingKey.clear();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                backgroundColor: const Color(0xFFD83B65),
+                radius: 24,
+                child: IconButton(
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  onPressed: () {
+                    _addNote(TextEditingKey.text);
+                    TextEditingKey.clear();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.mic, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'কিবোর্ডের মাইক আইকনে চাপ দিয়ে মুখে বললেই বাংলায় টাইপ হবে!',
+                  style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[600]),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          // নোট তালিকা
+          Expanded(
+            child: _dailyNotes.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.note_alt_outlined,
+                            size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text(
+                          'আজকের কোনো নোট বা টাস্ক নেই',
+                          style: GoogleFonts.inter(
+                              color: Colors.grey[600], fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _dailyNotes.length,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 1,
+                        child: ListTile(
+                          leading: const Icon(Icons.check_circle_outline,
+                              color: Color(0xFFD83B65)),
+                          title: Text(
+                            _dailyNotes[index],
+                            style: GoogleFonts.inter(
+                                fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.redAccent, size: 20),
+                            onPressed: () => _deleteNote(index),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+
+    String appTitle = 'Okybd';
+    if (_selectedTabIndex == 1) {
+      appTitle = 'Completed Sales Sheet';
+    } else if (_selectedTabIndex == 2) {
+      appTitle = 'Daily Task & Voice Notes';
+    }
 
     return Scaffold(
       key: scaffoldKey,
@@ -844,18 +994,19 @@ $itemsText💰 মোট বিল: TK $total
         backgroundColor: const Color(0xB2EE6083),
         automaticallyImplyLeading: false,
         title: Text(
-          _selectedTabIndex == 0 ? 'Okybd' : 'Completed Sales Sheet',
+          appTitle,
           style: GoogleFonts.interTight(
             color: Colors.white,
-            fontSize: 22,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _fetchDashboardData,
-          ),
+          if (_selectedTabIndex != 2)
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: _fetchDashboardData,
+            ),
         ],
         elevation: 2,
       ),
@@ -863,9 +1014,10 @@ $itemsText💰 মোট বিল: TK $total
         top: true,
         child: _selectedTabIndex == 0
             ? _buildOrdersDashboard(theme)
-            : _buildCompletedOrdersSheet(),
+            : _selectedTabIndex == 1
+                ? _buildCompletedOrdersSheet()
+                : _buildDailyNotesTab(),
       ),
-      // নিচে পরিষ্কার নেভিগেশন বার
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedTabIndex,
         selectedItemColor: const Color(0xFFD83B65),
@@ -883,6 +1035,10 @@ $itemsText💰 মোট বিল: TK $total
           BottomNavigationBarItem(
             icon: Icon(Icons.table_chart_outlined),
             label: 'Sales Sheet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.edit_note),
+            label: 'Daily Notes',
           ),
         ],
       ),
