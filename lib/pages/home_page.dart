@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,8 +36,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       'https://okybd.com/wp-json/wc/v3/reports/sales?consumer_key=$_consumerKey&consumer_secret=$_consumerSecret';
 
   // আপনার ফেসবুক ও ইউটিউব লিংক
-  final String _facebookUrl = 'https://facebook.com'; // আপনার পেজের লিংক দিন
-  final String _youtubeUrl = 'https://youtube.com';   // আপনার ইউটিউব লিংক দিন
+  final String _facebookUrl = 'https://www.facebook.com/okybds';
+  final String _youtubeUrl = 'https://youtube.com/@okybd?si=PK9na5irFuMW51Mo';
 
   @override
   void initState() {
@@ -1019,15 +1018,29 @@ $itemsText💰 মোট বিল: TK $total
           ),
         ),
         actions: [
-          // ফেসবুক পেজ আইকন বাটন
+          // ফেসবুক বাটন (বিল্ট-ইন আইকন ও ব্যাজ)
           IconButton(
-            icon: const FaIcon(FontAwesomeIcons.facebook, color: Colors.white, size: 20),
+            icon: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1877F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.facebook, color: Colors.white, size: 18),
+            ),
             tooltip: 'Facebook Page',
             onPressed: () => _openSocialLink(_facebookUrl),
           ),
-          // ইউটিউব চ্যানেল আইকন বাটন
+          // ইউটিউব বাটন (বিল্ট-ইন আইকন ও ব্যাজ)
           IconButton(
-            icon: const FaIcon(FontAwesomeIcons.youtube, color: Colors.white, size: 20),
+            icon: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFF0000),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.play_arrow, color: Colors.white, size: 18),
+            ),
             tooltip: 'YouTube Channel',
             onPressed: () => _openSocialLink(_youtubeUrl),
           ),
